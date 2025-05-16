@@ -12,5 +12,8 @@
     "react-native": "0.79.2",
     "react-native-async-storage": "^0.0.1",
     "react-native-image-picker": "^8.2.1"
+  },
+  "devDependencies": {
+    "@react-native-community/cli": "^18.0.0"
   }
 }
