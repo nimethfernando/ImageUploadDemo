@@ -3,33 +3,44 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 import io
 from PIL import Image
+import torch
 
-# Initialize app
+# Import DeOldify colorizer
+from deoldify.visualize import get_image_colorizer
+
 app = FastAPI()
-
-# CORS Configuration (important for React connection)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust for production
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+# Initialize colorizer (do this once)
+colorizer = get_image_colorizer(artistic=True)
+
 @app.post("/colorize")
 async def colorize_image(file: UploadFile = File(...)):
     try:
-        # 1. Read uploaded file
-        image_data = await file.read()
-        image = Image.open(io.BytesIO(image_data))
-        
-        # 2. Colorization logic (replace with actual model)
-        # For DeOldify: use visualize.get_image_colorizer()
-        # For other models: add your inference code
-        
-        # 3. Return colorized image
-        buf = io.BytesIO()
-        image.save(buf, format="JPEG")  # Replace with actual colorized image
-        return Response(content=buf.getvalue(), media_type="image/jpeg")
-        
+        # Save uploaded image to disk (DeOldify works with file paths)
+        contents = await file.read()
+        input_path = "input_image.jpg"
+        output_path = "output_image.jpg"
+        with open(input_path, "wb") as f:
+            f.write(contents)
+
+        # Colorize using DeOldify
+        colorizer.plot_transformed_image(
+            path=input_path,
+            results_dir=".",
+            render_factor=35,
+            display_render_factor=False,
+            figsize=(8,8)
+        )
+
+        # Read the colorized image and return as response
+        with open(output_path, "rb") as out_img:
+            img_bytes = out_img.read()
+        return Response(content=img_bytes, media_type="image/jpeg")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
